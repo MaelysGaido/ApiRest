@@ -5,11 +5,12 @@ Parameters:
   AppName:
     Type: String
     Default: campus-app
-Stage:
+  Stage:
     Type: String
     Default: dev
 
 Resources:
+
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -18,14 +19,14 @@ Resources:
         AllowHeaders: "'Accept, Content-Type, Content-Length, Authorization, X-Api-Key'"
         AllowOrigin: "'*'"
         MaxAge: "'600'"
-    Name:
-      Fn::Sub: ${AppName}-api-${Stage}
-    StageName: !Ref Stage
-    DefinitionBody:
-      Fn::Transform:
-        Name: AWS::Include
-        Parameters:
-          Location: specification/OpenApi.yml
+      Name:
+        Fn::Sub: ${AppName}-api-${Stage}
+      StageName: !Ref Stage
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: specification/OpenApi.yml
 
   GetDevices:
     Type: AWS::Serverless::Function
@@ -37,7 +38,35 @@ Resources:
         Fn::Sub: ${AppName}-get-devices-${Stage}
       Description: Get the list of devices
       CodeUri: ./src/devices
-      Handler: handler.get_devices
+      Handler: handler_maelys.get_devices
+
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path:
+        Fn::Sub: /${Stage}/${AppName}/serviceRoles/
+      RoleName:
+        Fn::Sub: ${AppName}-api-execution-role-${Stage}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Sub: ${AppName}-api-execution-role-policy-${Stage}
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  Fn::Sub: ${GetDevices.Arn}
     
+
 
 
